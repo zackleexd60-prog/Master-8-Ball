@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Master 8-Ball Pool | Juego de Billar Clásico & vs IA</title>
+    <meta name="description" content="Juego de billar profesional Bola 8 online con físicas realistas, multijugador local 1v1, modo vs Inteligencia Artificial, efectos de spin y personalización completa.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Header / Barra de Navegación Superior -->
+    <header class="app-header">
+        <div class="brand-logo">
+            <div class="brand-icon">8</div>
+            <h1 class="brand-title">MASTER POOL 8</h1>
+        </div>
+
+        <nav class="nav-actions">
+            <button id="btnOpenModes" class="nav-btn" title="Elegir Modo de Juego">
+                <i class="fas fa-gamepad"></i> <span>Modos</span>
+            </button>
+            <button id="btnOpenSettings" class="nav-btn" title="Personalizar Mesa y Taco">
+                <i class="fas fa-palette"></i> <span>Personalizar</span>
+            </button>
+            <button id="btnOpenRules" class="nav-btn" title="Reglas Oficiales Bola 8">
+                <i class="fas fa-book"></i> <span>Reglas</span>
+            </button>
+            <button id="btnSoundToggle" class="nav-btn icon-only" title="Silenciar / Activar Sonido">
+                <i class="fas fa-volume-up"></i>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Área Principal de Juego -->
+    <main class="game-main">
+        
+        <!-- Marcador HUD Superior -->
+        <section class="scoreboard-hud" aria-label="Marcador de la partida">
+            
+            <!-- Tarjeta Jugador 1 -->
+            <div id="p1Card" class="player-card p1 active-turn">
+                <div class="player-avatar"><i class="fas fa-user"></i></div>
+                <div class="player-info">
+                    <div class="player-name-row">
+                        <span id="p1NameDisplay" class="player-name">Jugador 1</span>
+                        <span class="turn-badge">Tu Turno</span>
+                    </div>
+                    <div id="p1BallsContainer" class="player-balls">
+                        <span class="open-table-badge">Mesa Abierta</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado Central de la Partida -->
+            <div class="center-status-hud">
+                <div id="gameStatusMsg" class="status-msg-pill">¡Tiro de apertura! Rompe el triángulo con fuerza.</div>
+                
+                <!-- HUD Especial Modo Speed Pool (Oculto por defecto) -->
+                <div id="speedPoolHud" class="speed-hud-panel" style="display: none;">
+                    <div class="speed-timer"><i class="fas fa-stopwatch"></i> <span id="speedTimerDisplay">2:00</span></div>
+                    <div class="speed-score"><i class="fas fa-star"></i> <span id="speedScoreDisplay">0</span> Pts</div>
+                </div>
+            </div>
+
+            <!-- Tarjeta Jugador 2 / IA -->
+            <div id="p2Card" class="player-card p2">
+                <div class="player-avatar"><i class="fas fa-user-ninja"></i></div>
+                <div class="player-info">
+                    <div class="player-name-row">
+                        <span id="p2NameDisplay" class="player-name">Jugador 2</span>
+                        <span class="turn-badge">Su Turno</span>
+                    </div>
+                    <div id="p2BallsContainer" class="player-balls">
+                        <span class="open-table-badge">Mesa Abierta</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Viewport Canvas de la Mesa de Billar -->
+        <section id="canvasContainer" class="canvas-viewport">
+            <canvas id="billiardCanvas" width="1120" height="620"></canvas>
+        </section>
+
+        <!-- Barra Inferior de Controles y Medidor de Potencia -->
+        <section class="controls-bar" aria-label="Controles de tiro">
+            
+            <!-- Widget de Control de Efecto (Spin / English) -->
+            <div class="spin-widget-container" title="Arrastra el punto rojo para dar efecto (retroceso, corrido, lateral). Doble clic para centrar.">
+                <span class="spin-label">Efecto</span>
+                <div id="spinPad" class="spin-pad">
+                    <div class="spin-crosshair-h"></div>
+                    <div class="spin-crosshair-v"></div>
+                    <div id="spinDot" class="spin-dot"></div>
+                </div>
+            </div>
+
+            <!-- Botones de Ajuste Fino de Ángulo -->
+            <div class="angle-controls" title="Ajuste fino de ángulo">
+                <button id="btnFineAngleLeft" class="fine-btn" title="Girar izquierda"><i class="fas fa-chevron-left"></i></button>
+                <button id="btnFineAngleRight" class="fine-btn" title="Girar derecha"><i class="fas fa-chevron-right"></i></button>
+            </div>
+
+            <!-- Barra y Slider de Potencia -->
+            <div class="power-control-group">
+                <div class="power-header">
+                    <span>Fuerza de Golpe</span>
+                    <span id="powerValue" class="power-val">35%</span>
+                </div>
+                <div class="power-slider-wrapper">
+                    <input type="range" id="powerSlider" class="power-slider" min="5" max="100" value="35" aria-label="Potencia del tiro">
+                </div>
+            </div>
+
+            <!-- Botones de Acción: Disparar y Reiniciar -->
+            <div class="action-buttons">
+                <button id="resetRackBtn" class="btn-secondary-action" title="Reacomodar las bolas">
+                    <i class="fas fa-redo"></i> <span>Reset</span>
+                </button>
+                <button id="shootBtn" class="btn-shoot" title="Ejecutar tiro (o presiona Barra Espaciadora)">
+                    <i class="fas fa-crosshairs"></i> <span>TIRAR</span>
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ==========================================================================
+         MODALES
+         ========================================================================== -->
+
+    <!-- Modal: Selección de Modos de Juego -->
+    <div id="modalModes" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-trophy"></i> Modos de Juego</h3>
+                <button class="close-modal-btn"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modes-grid">
+                <!-- 1 vs 1 Local -->
+                <div class="mode-card">
+                    <div class="mode-icon"><i class="fas fa-users"></i></div>
+                    <h4 class="mode-title">1 vs 1 Local</h4>
+                    <p class="mode-desc">Partida clásica de Bola 8 para dos jugadores por turnos en este mismo dispositivo.</p>
+                    <div class="mode-form">
+                        <input type="text" id="pvpP1Name" class="input-field" placeholder="Nombre Jugador 1" value="Jugador 1">
+                        <input type="text" id="pvpP2Name" class="input-field" placeholder="Nombre Jugador 2" value="Jugador 2">
+                        <button id="btnModePvp" class="btn-start-mode">Jugar 1 vs 1</button>
+                    </div>
+                </div>
+
+                <!-- vs Inteligencia Artificial -->
+                <div class="mode-card">
+                    <div class="mode-icon"><i class="fas fa-robot"></i></div>
+                    <h4 class="mode-title">vs Inteligencia Artificial</h4>
+                    <p class="mode-desc">Desafía a nuestro bot con cálculo de trayectorias y bola fantasma.</p>
+                    <div class="mode-form">
+                        <input type="text" id="aiP1Name" class="input-field" placeholder="Tu Nombre" value="Tú">
+                        <div class="difficulty-selector">
+                            <input type="radio" id="diffEasy" name="aiDiff" value="easy" class="diff-radio">
+                            <label for="diffEasy" class="diff-label">Novato</label>
+                            <input type="radio" id="diffMed" name="aiDiff" value="medium" class="diff-radio" checked>
+                            <label for="diffMed" class="diff-label">Pro</label>
+                            <input type="radio" id="diffHard" name="aiDiff" value="hard" class="diff-radio">
+                            <label for="diffHard" class="diff-label">Maestro</label>
+                        </div>
+                        <button id="btnModeAi" class="btn-start-mode">Jugar vs Bot</button>
+                    </div>
+                </div>
+
+                <!-- Modo Práctica Libre -->
+                <div class="mode-card">
+                    <div class="mode-icon"><i class="fas fa-bullseye"></i></div>
+                    <h4 class="mode-title">Práctica Libre</h4>
+                    <p class="mode-desc">Entrena tiros difíciles, bandas, efectos y colocación sin penalizaciones ni límite de tiempo.</p>
+                    <div class="mode-form">
+                        <button id="btnModePractice" class="btn-start-mode">Entrenar Libre</button>
+                    </div>
+                </div>
+
+                <!-- Modo Desafío Speed Pool -->
+                <div class="mode-card">
+                    <div class="mode-icon"><i class="fas fa-bolt"></i></div>
+                    <h4 class="mode-title">Speed Pool (Contrarreloj)</h4>
+                    <p class="mode-desc">Embolsa tantas bolas como puedas antes de que se agote el tiempo. Gana tiempo extra por combos.</p>
+                    <div class="mode-form">
+                        <button id="btnModeSpeed" class="btn-start-mode">Desafío Rápido</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Personalización & Ajustes -->
+    <div id="modalSettings" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-sliders-h"></i> Personalización & Ajustes</h3>
+                <button class="close-modal-btn"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Color del Paño -->
+            <div class="custom-section">
+                <span class="section-label">Paño de la Mesa</span>
+                <div class="theme-options-grid">
+                    <div class="theme-option active" data-theme="classic">
+                        <div class="swatch-cloth classic"></div>
+                        <span class="option-name">Verde Clásico</span>
+                    </div>
+                    <div class="theme-option" data-theme="royalBlue">
+                        <div class="swatch-cloth royalBlue"></div>
+                        <span class="option-name">Azul Torneo</span>
+                    </div>
+                    <div class="theme-option" data-theme="burgundy">
+                        <div class="swatch-cloth burgundy"></div>
+                        <span class="option-name">Borgoña Real</span>
+                    </div>
+                    <div class="theme-option" data-theme="cyberpunk">
+                        <div class="swatch-cloth cyberpunk"></div>
+                        <span class="option-name">Cyber Neon</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skin del Taco -->
+            <div class="custom-section">
+                <span class="section-label">Estilo del Taco</span>
+                <div class="cue-options-grid">
+                    <div class="cue-option active" data-cue="wood">
+                        <div class="swatch-cue wood"></div>
+                        <span class="option-name">Roble Clásico</span>
+                    </div>
+                    <div class="cue-option" data-cue="carbon">
+                        <div class="swatch-cue carbon"></div>
+                        <span class="option-name">Carbono Cyan</span>
+                    </div>
+                    <div class="cue-option" data-cue="gold">
+                        <div class="swatch-cue gold"></div>
+                        <span class="option-name">Dorado Royale</span>
+                    </div>
+                    <div class="cue-option" data-cue="cyber">
+                        <div class="swatch-cue cyber"></div>
+                        <span class="option-name">Cyber Neón</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Reglas Oficiales de Bola 8 -->
+    <div id="modalRules" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-book-open"></i> Reglas Oficiales de Bola 8</h3>
+                <button class="close-modal-btn"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="rules-content">
+                <div class="rule-box">
+                    <h4><i class="fas fa-circle-notch"></i> Asignación de Grupos</h4>
+                    <p>La mesa permanece abierta tras el saque. El primer jugador que emboque legalmente una bola lisa (1-7) o rayada (9-15) asume dicho grupo durante el resto de la partida.</p>
+                </div>
+
+                <div class="rule-box">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Tiro Legal y Faltas</h4>
+                    <p>En cada tiro debes golpear primero una bola de tu grupo asignado. Si embocas la bola blanca (Scratch) o tocas una bola ilegal primero, tu oponente obtiene <strong>Bola en Mano</strong> (puede colocar la blanca en cualquier lugar libre).</p>
+                </div>
+
+                <div class="rule-box">
+                    <h4><i class="fas fa-crown"></i> Victoria con la Bola 8</h4>
+                    <p>Una vez embocadas todas las bolas de tu grupo, debes embolsar la <strong>Bola 8 negra</strong> para ganar. Si metes la bola 8 antes de tiempo o cometes falta al meterla, pierdes automáticamente.</p>
+                </div>
+
+                <div class="rule-box">
+                    <h4><i class="fas fa-magic"></i> Efectos de Spin</h4>
+                    <p>Usa el controlador circular inferior para golpear la bola blanca por debajo del centro (retroceso / backspin), por encima (corrido / topspin) o en los costados para modificar los ángulos de rebote en bandas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Fin de Partida / Game Over -->
+    <div id="modalGameOver" class="modal-overlay">
+        <div class="modal-card">
+            <div class="game-over-content">
+                <div class="winner-icon-trophy"><i class="fas fa-trophy"></i></div>
+                <h2 id="gameOverWinnerTitle" class="winner-headline">¡Victoria!</h2>
+                <p id="gameOverReason" class="game-over-desc">Ha embolsado la Bola 8 legalmente.</p>
+
+                <div id="gameOverStats" class="stats-summary-grid">
+                    <!-- Estadísticas inyectadas por JS -->
+                </div>
+
+                <div class="game-over-actions">
+                    <button id="btnRematch" class="btn-start-mode"><i class="fas fa-redo"></i> Revancha</button>
+                    <button id="btnGameOverMenu" class="btn-secondary-action"><i class="fas fa-th-large"></i> Menú de Modos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de la Aplicación -->
+    <script src="js/audio.js"></script>
+    <script src="js/table.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
